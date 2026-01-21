@@ -1,0 +1,24 @@
+line-length = 120
+
+[lint]
+select = ["ALL"]
+ignore = ["D203", "D213", "D205", "W191"]
+
+[lint.extend-per-file-ignores]
+"tests/**/*.py" = [
+    "S101", # asserts allowed in tests
+    "ARG", # Unused function args -> fixtures nevertheless are functionally relevant
+    "N802", # Test function name can be in Pascal case to make it easier to read.
+    "ANN201", # Don't need type annotations for test cases.
+    "D102", # Don't need doc strings for tests
+    "D101", # Don't need doc strings for test class
+    "N801", # Test classes don't need to follow CapsName convention
+    "SLF001", # private member access is OK
+    "PLR2004", # Checking against magic numbers is OK
+]
+
+[format]
+quote-style = "single"
+
+[lint.flake8-quotes]
+inline-quotes = "single"
