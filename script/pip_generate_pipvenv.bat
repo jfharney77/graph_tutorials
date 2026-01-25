@@ -19,7 +19,7 @@ if "%~1"=="" (
 echo Using project root: "%PROJ_ROOT%"
 
 rem === Conifiguration section ===
-set "VENV=%PROJ_ROOT%\pip_venv"
+set "VENV=%PROJ_ROOT%\.pip_venv"
 set "REQ=%PROJ_ROOT%\requirements_docs\requirements.txt"
 
 rem === Ensure python is available ===
