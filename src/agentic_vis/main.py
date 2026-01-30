@@ -10,6 +10,7 @@ from pathlib import Path
 
 import win32com
 
+from agentic_vis.openers import full_control_open_pptx
 from src.agentic_vis.harvey import generate_harvey_balls
 from src.agentic_vis.draw import center_tool_nodes,center_l1_nodes,create_drawing_slide, connect_circles, draw_circles_center, resolve_circle_overlaps, write_surround_circles
 from src.agentic_vis.excel_utils import attach_harvey_balls, parse_excel_l12a, parse_excel_a2t, parse_excel_components
@@ -177,29 +178,8 @@ def close_ppt_safe(filename):
     # Presentation not found
     return None
 
-def close_ppt_app(app):
-    app.Quit()
-    print("PowerPoint application closed.")
-
-import os
-
-def open_pptx(filename: str):
-    os.startfile(filename)
 
 
-def full_control_open_pptx(filename: str):
-    import win32com.client
-
-    app = win32com.client.Dispatch("PowerPoint.Application")
-    app.Visible = True
-
-    presentation = app.Presentations.Open(filename)
-
-    # Do stuff here...
-    input("Press Enter to close the presentation and quit PowerPoint...")
-
-    presentation.Close()
-    app.Quit()
 
 
 def main() -> None:
@@ -214,7 +194,6 @@ def main() -> None:
     #    import time
     #     time.sleep(1)
 
-    #open_pptx("C:\\Users\\jfhar\\OneDrive\\Desktop\\github\\graph_tutorials\\agentic_plan.pptx")
     full_control_open_pptx("C:\\Users\\jfhar\\OneDrive\\Desktop\\github\\graph_tutorials\\agentic_plan.pptx")
 
 if __name__ == "__main__":
@@ -267,30 +246,4 @@ def flatten_names_with_depth(data: dict) -> dict:
             _walk(value, 1)
 
     return result
-
-"""
-my_dict = {
-    "l1" : {
-        "name" : "",
-        "types" : {
-            "p" : {
-                "name" : "",
-                "agents" : {
-                    "name: "",
-                    "tools" : {
-                        [ 
-                            {
-                                "name" : "",
-                                "progress" : 2
-                            }
-                        ]
-
-                    },
-                    "progress : "" 
-                },
-        }
-    }
-}
-}
-"""
 
