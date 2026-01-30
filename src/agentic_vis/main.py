@@ -9,7 +9,7 @@ from pptx.dml.color import RGBColor
 from pathlib import Path
 
 from src.agentic_vis.harvey import generate_harvey_balls
-from src.agentic_vis.draw import center_tool_nodes,center_l1_nodes,create_drawing_slide, connect_circles, draw_circles_center, resolve_circle_overlaps
+from src.agentic_vis.draw import center_tool_nodes,center_l1_nodes,create_drawing_slide, connect_circles, draw_circles_center, resolve_circle_overlaps, write_surround_circles
 from src.agentic_vis.excel_utils import attach_harvey_balls, parse_excel_l12a, parse_excel_a2t, parse_excel_components
 
 
@@ -102,11 +102,21 @@ def main() -> None:
     
     #circle_num = 3
     #draw_circles_center(slide, circle_num)
-    resolve_circle_overlaps(slide)
-    connect_circles_batch(slide,l12a_pairs)
     center_l1_nodes(slide)
     center_tool_nodes(slide)
     
+    
+
+    resolve_circle_overlaps(slide)
+
+    write_surround_circles(slide, "Personalization", ["A1","A2","A3","A4","A5"])
+
+    connect_circles_batch(slide,l12a_pairs)
+    
+    prs.save(filename)
+    print (f"saved {filename}")
+
+    '''
 
     from src.agentic_vis.excel_utils import attach_harvey_balls
     harvey_ball_dict = attach_harvey_balls(file_path)
@@ -117,9 +127,6 @@ def main() -> None:
         harvey_ball_dict,
     )
 
-    prs.save(filename)
-    print (f"saved {filename}")
-    '''
     filename = 'agentic_plan.pptx'
     prs = Presentation()
     create_presentation(prs,filename)
