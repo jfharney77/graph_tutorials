@@ -8,6 +8,8 @@ from pptx.enum.shapes import MSO_SHAPE
 from pptx.dml.color import RGBColor
 from pathlib import Path
 
+import win32com
+
 from src.agentic_vis.harvey import generate_harvey_balls
 from src.agentic_vis.draw import center_tool_nodes,center_l1_nodes,create_drawing_slide, connect_circles, draw_circles_center, resolve_circle_overlaps, write_surround_circles
 from src.agentic_vis.excel_utils import attach_harvey_balls, parse_excel_l12a, parse_excel_a2t, parse_excel_components
@@ -73,10 +75,7 @@ def connect_circles_batch(slide, pairs: list[tuple]) -> None:
             connect_circles(slide, pair[0], pair[1])
 
 
-
-def main() -> None:
-    """Entry point for agentic_vis."""
-
+def personal_main():
     file_path = "C:\\Users\\jfhar\\OneDrive\\Desktop\\github\\graph_tutorials\\hierarchy.xlsx"
     l12a_pairs = parse_excel_l12a(file_path)
     print (l12a_pairs)
@@ -110,9 +109,10 @@ def main() -> None:
     resolve_circle_overlaps(slide)
 
     write_surround_circles(slide, "Personalization", ["A1","A2","A3","A4","A5"])
+    write_surround_circles(slide, "Knowledge", ["A6","A7","A8","A9","A10"])
 
-    connect_circles_batch(slide,l12a_pairs)
-    
+    #connect_circles_batch(slide,l12a_pairs)
+
     prs.save(filename)
     print (f"saved {filename}")
 
@@ -133,8 +133,89 @@ def main() -> None:
     print ('created {filename}')
     '''
 
+import win32com.client
+
+def close_ppt(filename):
+    # Connect to running PowerPoint
+    try:
+        app = win32com.client.GetActiveObject("PowerPoint.Application")
+    except:
+        # PowerPoint is not running
+        return None
+    
+    for presentation in app.Presentations:
+        if presentation.Name.lower() == filename.lower():
+            presentation.Close()
+            print(f"{filename} closed.")
+            return
+    
+    # Presentation not found
+    return None
+
+def close_ppt_safe(filename):
+    """Close a PowerPoint presentation if it's open, otherwise return None.
+    
+    Args:
+        filename: The name of the PowerPoint file to close.
+        
+    Returns:
+        None if PowerPoint is not running or the file is not open.
+    """
+    try:
+        app = win32com.client.GetActiveObject("PowerPoint.Application")
+    except:
+        # PowerPoint is not running
+        print ('powerpoint not running?')
+        return None
+    print ('closing ppt...' + filename)
+    for presentation in app.Presentations:
+        if presentation.Name.lower() == filename.lower():
+            presentation.Close()
+            print(f"{filename} closed.")
+            return
+    
+    # Presentation not found
+    return None
+
+def close_ppt_app(app):
+    app.Quit()
+    print("PowerPoint application closed.")
+
+import os
+
+def open_pptx(filename: str):
+    os.startfile(filename)
 
 
+def full_control_open_pptx(filename: str):
+    import win32com.client
+
+    app = win32com.client.Dispatch("PowerPoint.Application")
+    app.Visible = True
+
+    presentation = app.Presentations.Open(filename)
+
+    # Do stuff here...
+    input("Press Enter to close the presentation and quit PowerPoint...")
+
+    presentation.Close()
+    app.Quit()
+
+
+def main() -> None:
+    """Entry point for agentic_vis."""
+    
+    #personal_main()
+    
+    #close_ppt_safe("C:\\Users\\jfhar\\OneDrive\\Desktop\\github\\graph_tutorials\\agentic_plan.pptx")
+    
+    #for i in range(3):
+    #    print (f"Opening in {3 - i} seconds...")
+    #    import time
+    #     time.sleep(1)
+
+    #open_pptx("C:\\Users\\jfhar\\OneDrive\\Desktop\\github\\graph_tutorials\\agentic_plan.pptx")
+    full_control_open_pptx("C:\\Users\\jfhar\\OneDrive\\Desktop\\github\\graph_tutorials\\agentic_plan.pptx")
 
 if __name__ == "__main__":
     main()
