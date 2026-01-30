@@ -62,6 +62,120 @@ def connect_circles(slide, circ1_name: str, circ2_name: str) -> None:
     connector.line.color.rgb = RGBColor(128, 128, 128)  # Gray line
     connector.line.width = Pt(2)  # 2 point width
 
+def create_drawing_slide_from_slide(prs,slide, items: list[str] | None = None, sizes: list[float] | None = None):
+    # Don't draw anything if items is None or empty list
+    if not items or len(items) == 0:
+        return slide
+
+    # If a sizes list is provided but empty, don't draw anything per spec
+    if sizes is not None and len(sizes) == 0:
+        return slide
+
+    # Deduplicate items while preserving order: if an item appears multiple
+    # times in the input list, only draw the first occurrence.
+    seen = set()
+    unique_items = []
+    for it in items:
+        if it not in seen:
+            seen.add(it)
+            unique_items.append(it)
+
+    # Get slide dimensions
+    slide_width = prs.slide_width
+    slide_height = prs.slide_height
+
+    # Set default sizes if not provided. Map sizes to the first occurrence
+    # of each unique item so duplicates use the first size provided.
+    if sizes is None:
+        sizes = [Inches(1.5)] * len(unique_items)
+    else:
+        orig_sizes = [Inches(s) if isinstance(s, (int, float)) else s for s in sizes]
+        sizes = []
+        for it in unique_items:
+            try:
+                idx = items.index(it)
+                sizes.append(orig_sizes[idx] if idx < len(orig_sizes) else Inches(1.5))
+            except ValueError:
+                sizes.append(Inches(1.5))
+
+    num_items = len(unique_items)
+
+    # Calculate spacing
+    if num_items == 1:
+        # Center single circle
+        circle_size = sizes[0]
+        left = (slide_width - circle_size) / 2
+        top = (slide_height - circle_size) / 2
+        positions = [(left, top)]
+    else:
+        # Arrange in a circle pattern around the center
+        import math
+        center_x = slide_width / 2
+        center_y = slide_height / 2
+        radius = Inches(2)
+
+        positions = []
+        for i in range(num_items):
+            angle = (2 * math.pi * i) / num_items
+            circle_size = sizes[i]
+            x = center_x + radius * math.cos(angle) - circle_size / 2
+            y = center_y + radius * math.sin(angle) - circle_size / 2
+            positions.append((x, y))
+
+    # Store circle info: name -> (left, top, size, center_x, center_y)
+    circle_info = {}
+
+    # Create circles with text
+    for i, (item, (left, top)) in enumerate(zip(unique_items, positions)):
+        circle_size = sizes[i]
+        center_x = left + circle_size / 2
+        center_y = top + circle_size / 2
+        circle_info[item] = (left, top, circle_size, center_x, center_y)
+
+        # Add circle shape
+        circle = slide.shapes.add_shape(
+            MSO_SHAPE.OVAL,
+            int(left),
+            int(top),
+            circle_size,
+            circle_size
+        )
+
+        # Format circle
+        circle.fill.solid()
+        circle.fill.fore_color.rgb = RGBColor(100, 149, 237)  # Cornflower blue
+        circle.line.color.rgb = RGBColor(25, 25, 112)  # Midnight blue
+
+        # Add text to circle
+        text_frame = circle.text_frame
+        text_frame.clear()  # Clear default text
+        p = text_frame.paragraphs[0]
+        p.text = item
+        p.font.size = Pt(12)
+        p.font.bold = True
+        p.font.color.rgb = RGBColor(255, 255, 255)  # White text
+        p.alignment = 1  # Center alignment
+
+    # Store circle info on slide for later use
+    slide.circle_info = circle_info
+    return slide
+
+
+def connect_circles_batch(slide, pairs: list[tuple]) -> None:
+    """Connect multiple pairs of circles in batch.
+
+    For each tuple pair in the list, calls connect_circles with the pair's
+    first element as circ1_name and second element as circ2_name.
+
+    Args:
+        slide: The slide object (typically returned from create_drawing_slide).
+        pairs: A list of tuples where each tuple is (circ1_name, circ2_name).
+    """
+    for pair in pairs:
+        if len(pair) >= 2:
+            print ('connecting ' + str(pair[0] + ' ' + str(pair[1])))
+            connect_circles(slide, pair[0], pair[1])
+
 
 def create_drawing_slide(prs, items: list[str] | None = None, sizes: list[float] | None = None):
     """Create a slide with circles containing text for each item in the list.
