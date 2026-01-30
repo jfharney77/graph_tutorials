@@ -3,6 +3,8 @@ from pptx.enum.shapes import MSO_SHAPE
 from pptx.dml.color import RGBColor
 import math
 
+from src.agentic_vis.excel_utils import TOOL_SIZE, L1_SIZE
+
 
 def connect_circles(slide, circ1_name: str, circ2_name: str) -> None:
     """Draw a line connecting two circles by their names at their circumferences.
@@ -77,8 +79,13 @@ def create_drawing_slide(prs, items: list[str] | None = None, sizes: list[float]
     blank_slide_layout = prs.slide_layouts[6]  # Blank layout
     slide = prs.slides.add_slide(blank_slide_layout)
 
-    if not items:
-        return None
+    # Don't draw anything if items is None or empty list
+    if not items or len(items) == 0:
+        return slide
+
+    # If a sizes list is provided but empty, don't draw anything per spec
+    if sizes is not None and len(sizes) == 0:
+        return slide
 
     # Deduplicate items while preserving order: if an item appears multiple
     # times in the input list, only draw the first occurrence.
@@ -193,4 +200,329 @@ def add_circle_at_coords(slide, x: float, y: float) -> None:
     circle.fill.solid()
     circle.fill.fore_color.rgb = RGBColor(100, 149, 237)  # Cornflower blue
     circle.line.color.rgb = RGBColor(25, 25, 112)  # Midnight blue
+
+
+def draw_circles_center(slide, circle_num: int) -> None:
+    """Draw `circle_num` circles of size 0.5 in a balanced layout centered on slide.
+
+    Args:
+        slide: The slide object to draw on.
+        circle_num: Number of circles to draw (int).
+    """
+    if circle_num <= 0:
+        return
+
+    circle_size = Inches(0.5)
+
+    # Determine slide dimensions
+    prs = None
+    try:
+        prs = slide.part.package.presentation if hasattr(slide.part, 'package') else None
+    except Exception:
+        prs = None
+
+    if prs is None:
+        # fallback defaults (10in x 7.5in in EMUs)
+        slide_width = Inches(10)
+        slide_height = Inches(7.5)
+    else:
+        slide_width = prs.slide_width
+        slide_height = prs.slide_height
+
+    # margins
+    margin_x = Inches(0.75)
+    margin_y = Inches(0.75)
+
+    avail_w = slide_width - 2 * margin_x
+    avail_h = slide_height - 2 * margin_y
+
+    # Compute grid size (rows x cols) as square as possible
+    import math as _math
+    cols = int(_math.ceil(_math.sqrt(circle_num)))
+    rows = int(_math.ceil(circle_num / cols))
+
+    # Compute spacing between circles
+    if cols > 1:
+        spacing_x = max((avail_w - cols * circle_size) / (cols - 1), Inches(0.1))
+    else:
+        spacing_x = 0
+    if rows > 1:
+        spacing_y = max((avail_h - rows * circle_size) / (rows - 1), Inches(0.1))
+    else:
+        spacing_y = 0
+
+    # Starting top-left to center the grid
+    total_w = cols * circle_size + (cols - 1) * spacing_x
+    total_h = rows * circle_size + (rows - 1) * spacing_y
+
+    start_x = (slide_width - total_w) / 2
+    start_y = (slide_height - total_h) / 2
+
+    # Ensure circle_info exists
+    if not hasattr(slide, 'circle_info') or not isinstance(slide.circle_info, dict):
+        print (type(slide))
+        slide.circle_info = {}
+
+    idx = 0
+    for r in range(rows):
+        for c in range(cols):
+            if idx >= circle_num:
+                break
+            x = int(start_x + c * (circle_size + spacing_x))
+            y = int(start_y + r * (circle_size + spacing_y))
+
+            shape = slide.shapes.add_shape(MSO_SHAPE.OVAL, x, y, circle_size, circle_size)
+            shape.fill.solid()
+            shape.fill.fore_color.rgb = RGBColor(100, 149, 237)
+            shape.line.color.rgb = RGBColor(25, 25, 112)
+
+            name = f"draw_center_{idx+1}"
+            # store center coords in circle_info
+            cx = x + circle_size / 2
+            cy = y + circle_size / 2
+            slide.circle_info[name] = (x, y, circle_size, cx, cy)
+
+            idx += 1
+        if idx >= circle_num:
+            break
+
+
+def resolve_circle_overlaps(slide, spacing: int = 20) -> None:
+    """Check for overlapping circles on the slide and move them apart.
+
+    This function examines all circles stored in slide.circle_info, detects
+    overlaps based on distance between centers, and adjusts positions to
+    eliminate overlaps with minimum spacing between outer circumferences.
+
+    Args:
+        slide: The slide object with circle_info attribute.
+        spacing: Minimum pixel spacing between outer circumferences (default 20).
+    """
+    if not hasattr(slide, 'circle_info') or not isinstance(slide.circle_info, dict):
+        print("Error: No circle information found on slide.")
+        return
+
+    circle_info = slide.circle_info
+    if len(circle_info) < 2:
+        return  # No overlaps possible with 0 or 1 circle
+
+    # Build list of circle names
+    circle_names = list(circle_info.keys())
+
+    # Iterate multiple times to resolve cascading overlaps
+    max_iterations = 10
+    for iteration in range(max_iterations):
+        overlap_found = False
+
+        # Check all pairs
+        for i in range(len(circle_names)):
+            for j in range(i + 1, len(circle_names)):
+                name1 = circle_names[i]
+                name2 = circle_names[j]
+
+                left1, top1, size1, cx1, cy1 = circle_info[name1]
+                left2, top2, size2, cx2, cy2 = circle_info[name2]
+
+                radius1 = size1 / 2
+                radius2 = size2 / 2
+
+                # Calculate distance between centers
+                dx = cx2 - cx1
+                dy = cy2 - cy1
+                distance = math.sqrt(dx**2 + dy**2)
+
+                # Check for overlap (include spacing between circumferences)
+                min_distance = radius1 + radius2 + spacing
+                if distance < min_distance and distance > 0:
+                    overlap_found = True
+
+                    # Calculate overlap amount
+                    overlap = min_distance - distance
+
+                    # Unit vector from circle1 to circle2
+                    unit_dx = dx / distance
+                    unit_dy = dy / distance
+
+                    # Move each circle half the overlap distance apart
+                    move_amount = (overlap / 2) * 1.1  # Add 10% padding
+
+                    # Update positions for circle1 (move away from circle2)
+                    new_cx1 = cx1 - unit_dx * move_amount
+                    new_cy1 = cy1 - unit_dy * move_amount
+                    new_left1 = new_cx1 - radius1
+                    new_top1 = new_cy1 - radius1
+
+                    # Update positions for circle2 (move away from circle1)
+                    new_cx2 = cx2 + unit_dx * move_amount
+                    new_cy2 = cy2 + unit_dy * move_amount
+                    new_left2 = new_cx2 - radius2
+                    new_top2 = new_cy2 - radius2
+
+                    # Update circle_info
+                    circle_info[name1] = (new_left1, new_top1, size1, new_cx1, new_cy1)
+                    circle_info[name2] = (new_left2, new_top2, size2, new_cx2, new_cy2)
+
+                    # Find and update the shapes
+                    for shape in slide.shapes:
+                        if hasattr(shape, 'text_frame') and shape.text_frame.text == name1:
+                            shape.left = int(new_left1)
+                            shape.top = int(new_top1)
+                        elif hasattr(shape, 'text_frame') and shape.text_frame.text == name2:
+                            shape.left = int(new_left2)
+                            shape.top = int(new_top2)
+
+        # If no overlaps found, we're done
+        if not overlap_found:
+            break
+
+
+def center_l1_nodes(slide) -> None:
+    """Find all circles of size 1.5 inches and arrange them in a row at slide center.
+
+    This function identifies circles with size 1.5 inches in circle_info and
+    repositions them horizontally centered on the slide.
+
+    Args:
+        slide: The slide object with circle_info attribute.
+    """
+    if not hasattr(slide, 'circle_info') or not isinstance(slide.circle_info, dict):
+        print("Error: No circle information found on slide.")
+        return
+
+    circle_info = slide.circle_info
+
+    # Find all circles with size 1.5 inches
+    target_size = Inches(L1_SIZE)
+    l1_circles = []
+    for name, (left, top, size, cx, cy) in circle_info.items():
+        if abs(size - target_size) < 1:  # Allow small tolerance
+            l1_circles.append(name)
+
+    if len(l1_circles) == 0:
+        return  # No circles of target size
+
+    # Get slide dimensions
+    prs = None
+    try:
+        prs = slide.part.package.presentation if hasattr(slide.part, 'package') else None
+    except Exception:
+        prs = None
+
+    if prs is None:
+        # Fallback defaults (10in x 7.5in)
+        slide_width = Inches(10)
+        slide_height = Inches(7.5)
+    else:
+        slide_width = prs.slide_width
+        slide_height = prs.slide_height
+
+    # Calculate horizontal spacing with equal white space at boundaries
+    num_circles = len(l1_circles)
+    
+    # Total width occupied by circles
+    total_circle_width = num_circles * target_size
+    
+    # Remaining space to distribute (left margin + gaps between circles + right margin)
+    remaining_space = slide_width - total_circle_width
+    
+    # Equal spacing: left boundary, between circles, and right boundary
+    # Total gaps = num_circles + 1 (1 left + (num_circles - 1) between + 1 right)
+    gap_size = remaining_space / (num_circles + 1)
+    
+    # Starting position (first gap from left)
+    start_x = gap_size
+    center_y = (slide_height - target_size) / 2
+
+    # Reposition each circle
+    for idx, name in enumerate(l1_circles):
+        new_left = start_x + idx * (target_size + gap_size)
+        new_top = center_y
+        new_cx = new_left + target_size / 2
+        new_cy = new_top + target_size / 2
+
+        # Update circle_info
+        circle_info[name] = (new_left, new_top, target_size, new_cx, new_cy)
+
+        # Find and update the shape
+        for shape in slide.shapes:
+            if hasattr(shape, 'text_frame') and shape.text_frame.text == name:
+                shape.left = int(new_left)
+                shape.top = int(new_top)
+                break
+
+
+def center_tool_nodes(slide) -> None:
+    """Find all circles of size 0.5 inches and arrange them in a row at top of slide.
+
+    This function identifies circles with size 0.5 inches in circle_info and
+    repositions them horizontally centered in the top portion of the slide
+    with equal spacing at boundaries.
+
+    Args:
+        slide: The slide object with circle_info attribute.
+    """
+    if not hasattr(slide, 'circle_info') or not isinstance(slide.circle_info, dict):
+        print("Error: No circle information found on slide.")
+        return
+
+    circle_info = slide.circle_info
+
+    # Find all circles with size 0.5 inches
+    target_size = Inches(TOOL_SIZE)
+    tool_circles = []
+    for name, (left, top, size, cx, cy) in circle_info.items():
+        if abs(size - target_size) < 1:  # Allow small tolerance
+            tool_circles.append(name)
+
+    if len(tool_circles) == 0:
+        return  # No circles of target size
+
+    # Get slide dimensions
+    prs = None
+    try:
+        prs = slide.part.package.presentation if hasattr(slide.part, 'package') else None
+    except Exception:
+        prs = None
+
+    if prs is None:
+        # Fallback defaults (10in x 7.5in)
+        slide_width = Inches(10)
+        slide_height = Inches(7.5)
+    else:
+        slide_width = prs.slide_width
+        slide_height = prs.slide_height
+
+    # Calculate horizontal spacing with equal white space at boundaries
+    num_circles = len(tool_circles)
+    
+    # Total width occupied by circles
+    total_circle_width = num_circles * target_size
+    
+    # Remaining space to distribute
+    remaining_space = slide_width - total_circle_width
+    
+    # Equal spacing: left boundary, between circles, and right boundary
+    gap_size = remaining_space / (num_circles + 1)
+    
+    # Starting position (first gap from left) and top portion positioning
+    start_x = gap_size
+    top_y = Inches(1.0)  # Position in top part of slide
+
+    # Reposition each circle
+    for idx, name in enumerate(tool_circles):
+        new_left = start_x + idx * (target_size + gap_size)
+        new_top = top_y
+        new_cx = new_left + target_size / 2
+        new_cy = new_top + target_size / 2
+
+        # Update circle_info
+        circle_info[name] = (new_left, new_top, target_size, new_cx, new_cy)
+
+        # Find and update the shape
+        for shape in slide.shapes:
+            if hasattr(shape, 'text_frame') and shape.text_frame.text == name:
+                shape.left = int(new_left)
+                shape.top = int(new_top)
+                break
+
 

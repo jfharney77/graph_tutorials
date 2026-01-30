@@ -1,0 +1,25 @@
+{
+    "version": "0.2.0",
+    "configurations": [     
+      {
+        "name": "Python Debugger: FastAPI",
+        "type": "debugpy",
+        "request": "launch",
+        "module": "uvicorn",
+        "args": [
+            "app_new:app",
+            "--app-dir", "src",
+            "--host", "0.0.0.0",
+            "--port", "6001"
+        ],
+        "jinja":false,
+        "justMyCode": false
+      },
+      {
+        "name": "Python Debugger: Current File",
+        "type": "debugpy",
+        "request": "launch",
+        "program": "${file}",
+      }
+    ],
+  }

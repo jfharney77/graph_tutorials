@@ -1,5 +1,10 @@
 """Utility functions for parsing Excel files."""
 
+# Size constants for component types
+L1_SIZE = 1.5
+AGENT_SIZE = 0.7
+TOOL_SIZE = 0.3
+
 
 def parse_excel_l12a(file_path: str) -> list[tuple]:
     """Parse the Excel file and return list of (L1, Agents) pairs from sheet 'L12A'.
@@ -301,14 +306,14 @@ def parse_excel_components(file_path: str) -> tuple[list[str], list[int]]:
             # Add name to list
             list_names.append(v_name)
 
-            # Map component type to integer
+            # Map component type to size constant
             type_str = str(v_type).strip().lower()
             if type_str == 'l1':
-                list_types.append(1.5)
+                list_types.append(L1_SIZE)
             elif type_str == 'agent':
-                list_types.append(1)
+                list_types.append(AGENT_SIZE)
             elif type_str == 'tool':
-                list_types.append(.5)
+                list_types.append(TOOL_SIZE)
             else:
                 # Skip unknown types or default to 0
                 list_types.append(0)
@@ -317,3 +322,107 @@ def parse_excel_components(file_path: str) -> tuple[list[str], list[int]]:
     finally:
         wb.close()
 
+
+def attach_harvey_balls(file_path: str) -> dict[str, int]:
+    """Parse the Excel file and return a dictionary mapping Component_Name to Progress.
+
+    This function reads the 'Components' sheet and extracts rows from columns
+    'Component_Name' and 'Progress' to build a dictionary.
+
+    Args:
+        file_path: Path to the Excel file.
+
+    Returns:
+        A dictionary where keys are Component_Name (strings) and values are Progress (integers).
+
+    Raises:
+        ImportError: if `openpyxl` is not installed.
+        ValueError: if the workbook does not contain a sheet named 'Components' or the
+                    required headers cannot be located.
+    """
+    try:
+        from openpyxl import load_workbook
+    except Exception as e:
+        raise ImportError("openpyxl is required to parse Excel files") from e
+
+    # Do not use read_only mode because we need access to cell.font.bold
+    wb = load_workbook(filename=file_path, data_only=True)
+    try:
+        if 'Components' not in wb.sheetnames:
+            raise ValueError("Sheet 'Components' not found in workbook")
+
+        ws = wb['Components']
+
+        col_name = None
+        col_progress = None
+        header_row = None
+
+        # Scan the first few rows to find header cells by bold formatting
+        max_scan_row = min(10, ws.max_row or 10)
+        for r in range(1, max_scan_row + 1):
+            for c in range(1, (ws.max_column or 1) + 1):
+                cell = ws.cell(row=r, column=c)
+                val = cell.value
+                if isinstance(val, str) and val.strip().lower() == 'component_name' and getattr(cell.font, 'bold', False):
+                    col_name = c
+                    header_row = r
+                if isinstance(val, str) and val.strip().lower() == 'progress' and getattr(cell.font, 'bold', False):
+                    col_progress = c
+                    header_row = r if header_row is None else header_row
+                if col_name and col_progress:
+                    break
+            if col_name and col_progress:
+                break
+
+        # Fallback: find by text ignoring bold if necessary
+        if col_name is None or col_progress is None:
+            for r in range(1, max_scan_row + 1):
+                for c in range(1, (ws.max_column or 1) + 1):
+                    cell = ws.cell(row=r, column=c)
+                    val = cell.value
+                    if isinstance(val, str) and val.strip().lower() == 'component_name' and col_name is None:
+                        col_name = c
+                        header_row = r
+                    if isinstance(val, str) and val.strip().lower() == 'progress' and col_progress is None:
+                        col_progress = c
+                        header_row = r if header_row is None else header_row
+                if col_name and col_progress:
+                    break
+
+        if col_name is None or col_progress is None:
+            raise ValueError("Could not locate header columns 'Component_Name' and 'Progress' in sheet 'Components'")
+
+        result_dict: dict[str, int] = {}
+
+        for r in range((header_row or 1) + 1, (ws.max_row or 1) + 1):
+            cell_name = ws.cell(row=r, column=col_name)
+            cell_progress = ws.cell(row=r, column=col_progress)
+            v_name = cell_name.value
+            v_progress = cell_progress.value
+
+            # Skip if name is empty or whitespace-only
+            if v_name is None or (isinstance(v_name, str) and v_name.strip() == ''):
+                continue
+
+            # Skip if progress is empty
+            if v_progress is None:
+                continue
+
+            # Ensure the values themselves are not bold (headers are bold)
+            bold_name = getattr(cell_name.font, 'bold', False)
+            bold_progress = getattr(cell_progress.font, 'bold', False)
+            if bold_name or bold_progress:
+                continue
+
+            # Convert progress to integer
+            try:
+                progress_int = int(v_progress)
+            except (ValueError, TypeError):
+                continue
+
+            # Add to dictionary
+            result_dict[v_name] = progress_int
+
+        return result_dict
+    finally:
+        wb.close()
