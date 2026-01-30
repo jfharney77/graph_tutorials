@@ -23,4 +23,5 @@ dependencies = [
     "openpyxl>=3.1.5",
     "flask>=3.1.2",
     "neo4j>=6.1.0",
+    "python-pptx>=0.6.21",
 ]
