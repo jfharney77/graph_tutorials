@@ -77,14 +77,17 @@ def connect_circles_batch(slide, pairs: list[tuple]) -> None:
 
 
 
-
+def personal_main():
+    pass
 
 
 
 def main() -> None:
     """Entry point for agentic_vis."""
     
+    
     #personal_main()
+    
     
     #close_ppt_safe("C:\\Users\\jfhar\\OneDrive\\Desktop\\github\\graph_tutorials\\agentic_plan.pptx")
     
