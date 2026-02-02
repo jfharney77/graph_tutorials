@@ -1,6 +1,6 @@
 """Utility functions for parsing Excel files."""
 
-from src.agentic_vis.config import L1_2_AGENTS_TAB_NAME, L1_SIZE, AGENT_SIZE, TOOL_SIZE
+from src.agentic_vis.config import AGENTS_2_TOOLS_TAB_NAME, COMPONENTS_TAB_NAME, L1_2_AGENTS_TAB_NAME, L1_SIZE, AGENT_SIZE, TOOL_SIZE
 
 def parse_excel_l12a(file_path: str) -> list[tuple]:
     """Parse the Excel file and return list of (L1, Agents) pairs from sheet L1_2_AGENTS_TAB_NAME 'L12A'.
@@ -100,7 +100,7 @@ def parse_excel_l12a(file_path: str) -> list[tuple]:
 
 
 def parse_excel_a2t(file_path: str) -> list[tuple]:
-    """Parse the Excel file and return list of (Agents, Tools) pairs from sheet 'A2T'.
+    """Parse the Excel file and return list of (Agents, Tools) pairs from sheet AGENTS_2_TOOLS_TAB_NAME.
 
     This function locates the header columns by searching for header cells with
     text 'Agents' and 'Tools' (preferably bold). It then iterates rows below the
@@ -114,7 +114,7 @@ def parse_excel_a2t(file_path: str) -> list[tuple]:
 
     Raises:
         ImportError: if `openpyxl` is not installed.
-        ValueError: if the workbook does not contain a sheet named 'A2T' or the
+        ValueError: if the workbook does not contain a sheet named AGENTS_2_TOOLS_TAB_NAME or the
                     required headers cannot be located.
     """
     try:
@@ -125,10 +125,10 @@ def parse_excel_a2t(file_path: str) -> list[tuple]:
     # Do not use read_only mode because we need access to cell.font.bold
     wb = load_workbook(filename=file_path, data_only=True)
     try:
-        if 'A2T' not in wb.sheetnames:
-            raise ValueError("Sheet 'A2T' not found in workbook")
+        if AGENTS_2_TOOLS_TAB_NAME not in wb.sheetnames:
+            raise ValueError("Sheet AGENTS_2_TOOLS_TAB_NAME not found in workbook")
 
-        ws = wb['A2T']
+        ws = wb[AGENTS_2_TOOLS_TAB_NAME]
 
         col_agents = None
         col_tools = None
@@ -167,7 +167,7 @@ def parse_excel_a2t(file_path: str) -> list[tuple]:
                     break
 
         if col_agents is None or col_tools is None:
-            raise ValueError("Could not locate header columns 'Agents' and 'Tools' in sheet 'A2T'")
+            raise ValueError("Could not locate header columns 'Agents' and 'Tools' in sheet AGENTS_2_TOOLS_TAB_NAME")
 
         pairs: list[tuple] = []
 
@@ -197,10 +197,10 @@ def parse_excel_a2t(file_path: str) -> list[tuple]:
 
 
 def parse_excel_components(file_path: str) -> tuple[list[str], list[int]]:
-    """Parse the Excel file and return two lists from the 'Components' sheet.
+    """Parse the Excel file and return two lists from the COMPONENTS_TAB_NAME sheet.
 
     This function locates header columns 'Component_Type', 'Component_Name', and
-    'Progress' in the 'Components' sheet. It then iterates through rows and returns:
+    'Progress' in the COMPONENTS_TAB_NAME sheet. It then iterates through rows and returns:
     - list_1: names from Component_Name column
     - list_2: integers based on Component_Type (3 for L1, 2 for Agent, 1 for Tool)
 
@@ -214,7 +214,7 @@ def parse_excel_components(file_path: str) -> tuple[list[str], list[int]]:
 
     Raises:
         ImportError: if `openpyxl` is not installed.
-        ValueError: if the workbook does not contain a sheet named 'Components' or the
+        ValueError: if the workbook does not contain a sheet named COMPONENTS_TAB_NAME or the
                     required headers cannot be located.
     """
     try:
@@ -225,10 +225,10 @@ def parse_excel_components(file_path: str) -> tuple[list[str], list[int]]:
     # Do not use read_only mode because we need access to cell.font.bold
     wb = load_workbook(filename=file_path, data_only=True)
     try:
-        if 'Components' not in wb.sheetnames:
-            raise ValueError("Sheet 'Components' not found in workbook")
+        if COMPONENTS_TAB_NAME not in wb.sheetnames:
+            raise ValueError("Sheet COMPONENTS_TAB_NAME not found in workbook")
 
-        ws = wb['Components']
+        ws = wb[COMPONENTS_TAB_NAME]
 
         col_type = None
         col_name = None
@@ -274,7 +274,7 @@ def parse_excel_components(file_path: str) -> tuple[list[str], list[int]]:
                     break
 
         if col_type is None or col_name is None or col_progress is None:
-            raise ValueError("Could not locate header columns 'Component_Type', 'Component_Name', and 'Progress' in sheet 'Components'")
+            raise ValueError("Could not locate header columns 'Component_Type', 'Component_Name', and 'Progress' in sheet COMPONENTS_TAB_NAME")
 
         list_names: list[str] = []
         list_types: list[float] = []
@@ -300,7 +300,7 @@ def parse_excel_components(file_path: str) -> tuple[list[str], list[int]]:
                 continue
 
             # Add name to list
-            list_names.append(v_name)
+            list_names.append(v_name) # type: ignore
 
             # Map component type to size constant
             type_str = str(v_type).strip().lower()
@@ -314,7 +314,7 @@ def parse_excel_components(file_path: str) -> tuple[list[str], list[int]]:
                 # Skip unknown types or default to 0
                 list_types.append(0)
 
-        return (list_names, list_types)
+        return (list_names, list_types) # type: ignore
     finally:
         wb.close()
 
@@ -322,7 +322,7 @@ def parse_excel_components(file_path: str) -> tuple[list[str], list[int]]:
 def attach_harvey_balls(file_path: str) -> dict[str, int]:
     """Parse the Excel file and return a dictionary mapping Component_Name to Progress.
 
-    This function reads the 'Components' sheet and extracts rows from columns
+    This function reads the COMPONENTS_TAB_NAME sheet and extracts rows from columns
     'Component_Name' and 'Progress' to build a dictionary.
 
     Args:
@@ -333,7 +333,7 @@ def attach_harvey_balls(file_path: str) -> dict[str, int]:
 
     Raises:
         ImportError: if `openpyxl` is not installed.
-        ValueError: if the workbook does not contain a sheet named 'Components' or the
+        ValueError: if the workbook does not contain a sheet named COMPONENTS_TAB_NAME or the
                     required headers cannot be located.
     """
     try:
@@ -344,10 +344,10 @@ def attach_harvey_balls(file_path: str) -> dict[str, int]:
     # Do not use read_only mode because we need access to cell.font.bold
     wb = load_workbook(filename=file_path, data_only=True)
     try:
-        if 'Components' not in wb.sheetnames:
-            raise ValueError("Sheet 'Components' not found in workbook")
+        if COMPONENTS_TAB_NAME not in wb.sheetnames:
+            raise ValueError(f"Sheet {COMPONENTS_TAB_NAME} not found in workbook")
 
-        ws = wb['Components']
+        ws = wb[COMPONENTS_TAB_NAME]
 
         col_name = None
         col_progress = None
@@ -386,7 +386,7 @@ def attach_harvey_balls(file_path: str) -> dict[str, int]:
                     break
 
         if col_name is None or col_progress is None:
-            raise ValueError("Could not locate header columns 'Component_Name' and 'Progress' in sheet 'Components'")
+            raise ValueError("Could not locate header columns 'Component_Name' and 'Progress' in sheet COMPONENTS_TAB_NAME")
 
         result_dict: dict[str, int] = {}
 

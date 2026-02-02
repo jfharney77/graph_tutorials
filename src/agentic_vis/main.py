@@ -11,10 +11,10 @@ from pathlib import Path
 
 import win32com
 
-from agentic_vis.config import DEFAULT_PROJ_ROOT, DEST_FILE_DIR, DEST_FILE_NAME
-from agentic_vis.openers import full_control_open_pptx
+from agentic_vis.config import DEFAULT_PROJ_ROOT, DEFAULT_XLSX_FILE_PATH, DEST_FILE_DIR, DEST_FILE_NAME
+from agentic_vis.openers import close_excel_if_open, full_control_open_pptx
 from src.agentic_vis.harvey import generate_harvey_balls
-from src.agentic_vis.draw import center_tool_nodes,center_l1_nodes,create_drawing_slide, connect_circles, draw_circles_center, resolve_circle_overlaps, write_surround_circles
+from src.agentic_vis.draw import center_tool_nodes,center_l1_nodes, connect_circles_batch,create_drawing_slide, connect_circles, draw_circles_center, resolve_circle_overlaps, write_surround_circles
 from src.agentic_vis.excel_utils import attach_harvey_balls, parse_excel_l12a, parse_excel_a2t, parse_excel_components
 
 from src.agentic_vis.excel_utils import attach_harvey_balls
@@ -54,21 +54,26 @@ def personal_main2(
         xlsx_input_file_path: str = DEFAULT_PROJ_ROOT + '\\hierarchy.xlsx'
     ) -> None:
 
+    # close excel if it is running
+    excel_file = DEFAULT_XLSX_FILE_PATH
+    success, message = close_excel_if_open(excel_file, save_changes=True)
+    
+
     # --- Excel processing --- #
     # get teh l1 to agent pairs
     l12a_pairs = parse_excel_l12a(xlsx_input_file_path)
-    print ('l12a_pairs:')
-    print (l12a_pairs)
+    #print ('l12a_pairs:')
+    #print (l12a_pairs)
     
     # get the agent to tool pairs
     a2t_pairs = parse_excel_a2t(xlsx_input_file_path)
-    print ('a2t_pairs:')
-    print (a2t_pairs)
+    #print ('a2t_pairs:')
+    #print (a2t_pairs)
 
     # get all components
     components_response = parse_excel_components(xlsx_input_file_path)
-    print ('components_response:')
-    print (components_response)
+    #print ('components_response:')
+    #print (components_response)
     items = components_response[0]
     sizes = components_response[1]
     print (items)
@@ -90,18 +95,23 @@ def personal_main2(
     print (sizes)
     center_l1_nodes(slide)
     center_tool_nodes(slide)
-    
+
     write_surround_circles(slide, "Personalization", ["A1","A2","A3","A4","A5"])
-    
+
+    write_surround_circles(slide, "Knowledge", ["A6","A7","A8","A9","A10"])
+
+    write_surround_circles(slide, "Escalation", ["A11"])
+
+    connect_circles_batch(slide,l12a_pairs)
+
     save_and_present(
         prs, 
-        pptx_output_file_path
+        pptx_output_file_path,
     )
 
 
     resolve_circle_overlaps(slide)
 
-    write_surround_circles(slide, "Knowledge", ["A6","A7","A8","A9","A10"])
 
 
     harvey_ball_dict = attach_harvey_balls(xlsx_input_file_path)
@@ -118,10 +128,10 @@ def main() -> None:
     """Entry point for agentic_vis."""
     
     
-    pptx_output_file_path = "C:\\Users\\jfhar\\OneDrive\\Desktop\\github\\graph_tutorials\\agentic_plan.pptx"
-    xlsx_input_file_path: str = "C:\\Users\\jfhar\\OneDrive\\Desktop\\github\\graph_tutorials\\hierarchy.xlsx"
+    xlsx_input_file_path = "C:\\Users\\John_Harney\\github\\graph_tutorials\\hierarchy.xlsx"
+    pptx_output_file_path = "C:\\Users\\John_Harney\\github\\graph_tutorials\\agentic_plan.pptx"
     
-    full_control_open_pptx(pptx_output_file_path)
+    #full_control_open_pptx(pptx_output_file_path)
     personal_main2(
         pptx_output_file_path,
         xlsx_input_file_path,

@@ -405,93 +405,8 @@ def draw_circles_center(slide, circle_num: int) -> None:
             break
 
 
-def resolve_circle_overlaps(slide, spacing: int = 20) -> None:
-    """Check for overlapping circles on the slide and move them apart.
 
-    This function examines all circles stored in slide.circle_info, detects
-    overlaps based on distance between centers, and adjusts positions to
-    eliminate overlaps with minimum spacing between outer circumferences.
 
-    Args:
-        slide: The slide object with circle_info attribute.
-        spacing: Minimum pixel spacing between outer circumferences (default 20).
-    """
-    if not hasattr(slide, 'circle_info') or not isinstance(slide.circle_info, dict):
-        print("Error: No circle information found on slide.")
-        return
-
-    circle_info = slide.circle_info
-    if len(circle_info) < 2:
-        return  # No overlaps possible with 0 or 1 circle
-
-    # Build list of circle names
-    circle_names = list(circle_info.keys())
-
-    # Iterate multiple times to resolve cascading overlaps
-    max_iterations = 10
-    for iteration in range(max_iterations):
-        overlap_found = False
-
-        # Check all pairs
-        for i in range(len(circle_names)):
-            for j in range(i + 1, len(circle_names)):
-                name1 = circle_names[i]
-                name2 = circle_names[j]
-
-                left1, top1, size1, cx1, cy1 = circle_info[name1]
-                left2, top2, size2, cx2, cy2 = circle_info[name2]
-
-                radius1 = size1 / 2
-                radius2 = size2 / 2
-
-                # Calculate distance between centers
-                dx = cx2 - cx1
-                dy = cy2 - cy1
-                distance = math.sqrt(dx**2 + dy**2)
-
-                # Check for overlap (include spacing between circumferences)
-                min_distance = radius1 + radius2 + spacing
-                if distance < min_distance and distance > 0:
-                    overlap_found = True
-
-                    # Calculate overlap amount
-                    overlap = min_distance - distance
-
-                    # Unit vector from circle1 to circle2
-                    unit_dx = dx / distance
-                    unit_dy = dy / distance
-
-                    # Move each circle half the overlap distance apart
-                    move_amount = (overlap / 2) * 1.1  # Add 10% padding
-
-                    # Update positions for circle1 (move away from circle2)
-                    new_cx1 = cx1 - unit_dx * move_amount
-                    new_cy1 = cy1 - unit_dy * move_amount
-                    new_left1 = new_cx1 - radius1
-                    new_top1 = new_cy1 - radius1
-
-                    # Update positions for circle2 (move away from circle1)
-                    new_cx2 = cx2 + unit_dx * move_amount
-                    new_cy2 = cy2 + unit_dy * move_amount
-                    new_left2 = new_cx2 - radius2
-                    new_top2 = new_cy2 - radius2
-
-                    # Update circle_info
-                    circle_info[name1] = (new_left1, new_top1, size1, new_cx1, new_cy1)
-                    circle_info[name2] = (new_left2, new_top2, size2, new_cx2, new_cy2)
-
-                    # Find and update the shapes
-                    for shape in slide.shapes:
-                        if hasattr(shape, 'text_frame') and shape.text_frame.text == name1:
-                            shape.left = int(new_left1)
-                            shape.top = int(new_top1)
-                        elif hasattr(shape, 'text_frame') and shape.text_frame.text == name2:
-                            shape.left = int(new_left2)
-                            shape.top = int(new_top2)
-
-        # If no overlaps found, we're done
-        if not overlap_found:
-            break
 
 
 def center_l1_nodes(slide) -> None:
@@ -719,3 +634,96 @@ def write_surround_circles(slide, source: str, dest: list) -> None:
                 shape.top = int(new_top)
                 break
 
+
+
+
+
+
+
+def resolve_circle_overlaps(slide, spacing: int = 20) -> None:
+    """Check for overlapping circles on the slide and move them apart.
+
+    This function examines all circles stored in slide.circle_info, detects
+    overlaps based on distance between centers, and adjusts positions to
+    eliminate overlaps with minimum spacing between outer circumferences.
+
+    Args:
+        slide: The slide object with circle_info attribute.
+        spacing: Minimum pixel spacing between outer circumferences (default 20).
+    """
+    if not hasattr(slide, 'circle_info') or not isinstance(slide.circle_info, dict):
+        print("Error: No circle information found on slide.")
+        return
+
+    circle_info = slide.circle_info
+    if len(circle_info) < 2:
+        return  # No overlaps possible with 0 or 1 circle
+
+    # Build list of circle names
+    circle_names = list(circle_info.keys())
+
+    # Iterate multiple times to resolve cascading overlaps
+    max_iterations = 10
+    for iteration in range(max_iterations):
+        overlap_found = False
+
+        # Check all pairs
+        for i in range(len(circle_names)):
+            for j in range(i + 1, len(circle_names)):
+                name1 = circle_names[i]
+                name2 = circle_names[j]
+
+                left1, top1, size1, cx1, cy1 = circle_info[name1]
+                left2, top2, size2, cx2, cy2 = circle_info[name2]
+
+                radius1 = size1 / 2
+                radius2 = size2 / 2
+
+                # Calculate distance between centers
+                dx = cx2 - cx1
+                dy = cy2 - cy1
+                distance = math.sqrt(dx**2 + dy**2)
+
+                # Check for overlap (include spacing between circumferences)
+                min_distance = radius1 + radius2 + spacing
+                if distance < min_distance and distance > 0:
+                    overlap_found = True
+
+                    # Calculate overlap amount
+                    overlap = min_distance - distance
+
+                    # Unit vector from circle1 to circle2
+                    unit_dx = dx / distance
+                    unit_dy = dy / distance
+
+                    # Move each circle half the overlap distance apart
+                    move_amount = (overlap / 2) * 1.1  # Add 10% padding
+
+                    # Update positions for circle1 (move away from circle2)
+                    new_cx1 = cx1 - unit_dx * move_amount
+                    new_cy1 = cy1 - unit_dy * move_amount
+                    new_left1 = new_cx1 - radius1
+                    new_top1 = new_cy1 - radius1
+
+                    # Update positions for circle2 (move away from circle1)
+                    new_cx2 = cx2 + unit_dx * move_amount
+                    new_cy2 = cy2 + unit_dy * move_amount
+                    new_left2 = new_cx2 - radius2
+                    new_top2 = new_cy2 - radius2
+
+                    # Update circle_info
+                    circle_info[name1] = (new_left1, new_top1, size1, new_cx1, new_cy1)
+                    circle_info[name2] = (new_left2, new_top2, size2, new_cx2, new_cy2)
+
+                    # Find and update the shapes
+                    for shape in slide.shapes:
+                        if hasattr(shape, 'text_frame') and shape.text_frame.text == name1:
+                            shape.left = int(new_left1)
+                            shape.top = int(new_top1)
+                        elif hasattr(shape, 'text_frame') and shape.text_frame.text == name2:
+                            shape.left = int(new_left2)
+                            shape.top = int(new_top2)
+
+        # If no overlaps found, we're done
+        if not overlap_found:
+            break
