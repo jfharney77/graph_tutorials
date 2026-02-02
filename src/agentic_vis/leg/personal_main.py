@@ -1,8 +1,32 @@
 
 from pptx import Presentation
-from agentic_vis.draw import center_l1_nodes, center_tool_nodes, create_drawing_slide, resolve_circle_overlaps, write_surround_circles
+from agentic_vis.draw import center_l1_nodes, center_tool_nodes, connect_circles, create_drawing_slide, resolve_circle_overlaps, write_surround_circles
 from agentic_vis.excel_utils import parse_excel_a2t, parse_excel_components, parse_excel_l12a
+from agentic_vis.harvey import generate_harvey_balls
 
+
+def create_presentation(prs,filename: str = "agentic_plan.pptx"):
+
+    items = ['a','b','c','aa','bb','cc','a']
+    sizes = [1, 2, 1, 1, 1, 1,1]
+    slide = create_drawing_slide(prs, items, sizes)
+    harvey_ball_dict = {
+        'a' : 2,
+        'aa' : 2,
+        'b' : 1,
+        'bb' : 3,
+        'c' : 4
+    }
+    connect_circles(slide,'a','b')
+    #generate_harvey_balls(slide, 
+
+    #    ['a', 'c']
+    #)
+    generate_harvey_balls(
+        slide,
+        harvey_ball_dict,
+    )
+    prs.save(filename)
 
 def personal_main():
     file_path = "C:\\Users\\jfhar\\OneDrive\\Desktop\\github\\graph_tutorials\\hierarchy.xlsx"

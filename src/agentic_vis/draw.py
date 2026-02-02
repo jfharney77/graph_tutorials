@@ -63,6 +63,120 @@ def connect_circles(slide, circ1_name: str, circ2_name: str) -> None:
     connector.line.color.rgb = RGBColor(128, 128, 128)  # Gray line
     connector.line.width = Pt(2)  # 2 point width
 
+def create_drawing_slide_from_slide(prs,slide, items: list[str] | None = None, sizes: list[float] | None = None):
+    # Don't draw anything if items is None or empty list
+    if not items or len(items) == 0:
+        return slide
+
+    # If a sizes list is provided but empty, don't draw anything per spec
+    if sizes is not None and len(sizes) == 0:
+        return slide
+
+    # Deduplicate items while preserving order: if an item appears multiple
+    # times in the input list, only draw the first occurrence.
+    seen = set()
+    unique_items = []
+    for it in items:
+        if it not in seen:
+            seen.add(it)
+            unique_items.append(it)
+
+    # Get slide dimensions
+    slide_width = prs.slide_width
+    slide_height = prs.slide_height
+
+    # Set default sizes if not provided. Map sizes to the first occurrence
+    # of each unique item so duplicates use the first size provided.
+    if sizes is None:
+        sizes = [Inches(1.5)] * len(unique_items)
+    else:
+        orig_sizes = [Inches(s) if isinstance(s, (int, float)) else s for s in sizes]
+        sizes = []
+        for it in unique_items:
+            try:
+                idx = items.index(it)
+                sizes.append(orig_sizes[idx] if idx < len(orig_sizes) else Inches(1.5))
+            except ValueError:
+                sizes.append(Inches(1.5))
+
+    num_items = len(unique_items)
+
+    # Calculate spacing
+    if num_items == 1:
+        # Center single circle
+        circle_size = sizes[0]
+        left = (slide_width - circle_size) / 2
+        top = (slide_height - circle_size) / 2
+        positions = [(left, top)]
+    else:
+        # Arrange in a circle pattern around the center
+        import math
+        center_x = slide_width / 2
+        center_y = slide_height / 2
+        radius = Inches(2)
+
+        positions = []
+        for i in range(num_items):
+            angle = (2 * math.pi * i) / num_items
+            circle_size = sizes[i]
+            x = center_x + radius * math.cos(angle) - circle_size / 2
+            y = center_y + radius * math.sin(angle) - circle_size / 2
+            positions.append((x, y))
+
+    # Store circle info: name -> (left, top, size, center_x, center_y)
+    circle_info = {}
+
+    # Create circles with text
+    for i, (item, (left, top)) in enumerate(zip(unique_items, positions)):
+        circle_size = sizes[i]
+        center_x = left + circle_size / 2
+        center_y = top + circle_size / 2
+        circle_info[item] = (left, top, circle_size, center_x, center_y)
+
+        # Add circle shape
+        circle = slide.shapes.add_shape(
+            MSO_SHAPE.OVAL,
+            int(left),
+            int(top),
+            circle_size,
+            circle_size
+        )
+
+        # Format circle
+        circle.fill.solid()
+        circle.fill.fore_color.rgb = RGBColor(100, 149, 237)  # Cornflower blue
+        circle.line.color.rgb = RGBColor(25, 25, 112)  # Midnight blue
+
+        # Add text to circle
+        text_frame = circle.text_frame
+        text_frame.clear()  # Clear default text
+        p = text_frame.paragraphs[0]
+        p.text = item
+        p.font.size = Pt(12)
+        p.font.bold = True
+        p.font.color.rgb = RGBColor(255, 255, 255)  # White text
+        p.alignment = 1  # Center alignment
+
+    # Store circle info on slide for later use
+    slide.circle_info = circle_info
+    return slide
+
+
+def connect_circles_batch(slide, pairs: list[tuple]) -> None:
+    """Connect multiple pairs of circles in batch.
+
+    For each tuple pair in the list, calls connect_circles with the pair's
+    first element as circ1_name and second element as circ2_name.
+
+    Args:
+        slide: The slide object (typically returned from create_drawing_slide).
+        pairs: A list of tuples where each tuple is (circ1_name, circ2_name).
+    """
+    for pair in pairs:
+        if len(pair) >= 2:
+            print ('connecting ' + str(pair[0] + ' ' + str(pair[1])))
+            connect_circles(slide, pair[0], pair[1])
+
 
 def create_drawing_slide(prs, items: list[str] | None = None, sizes: list[float] | None = None):
     """Create a slide with circles containing text for each item in the list.
@@ -291,93 +405,8 @@ def draw_circles_center(slide, circle_num: int) -> None:
             break
 
 
-def resolve_circle_overlaps(slide, spacing: int = 20) -> None:
-    """Check for overlapping circles on the slide and move them apart.
 
-    This function examines all circles stored in slide.circle_info, detects
-    overlaps based on distance between centers, and adjusts positions to
-    eliminate overlaps with minimum spacing between outer circumferences.
 
-    Args:
-        slide: The slide object with circle_info attribute.
-        spacing: Minimum pixel spacing between outer circumferences (default 20).
-    """
-    if not hasattr(slide, 'circle_info') or not isinstance(slide.circle_info, dict):
-        print("Error: No circle information found on slide.")
-        return
-
-    circle_info = slide.circle_info
-    if len(circle_info) < 2:
-        return  # No overlaps possible with 0 or 1 circle
-
-    # Build list of circle names
-    circle_names = list(circle_info.keys())
-
-    # Iterate multiple times to resolve cascading overlaps
-    max_iterations = 10
-    for iteration in range(max_iterations):
-        overlap_found = False
-
-        # Check all pairs
-        for i in range(len(circle_names)):
-            for j in range(i + 1, len(circle_names)):
-                name1 = circle_names[i]
-                name2 = circle_names[j]
-
-                left1, top1, size1, cx1, cy1 = circle_info[name1]
-                left2, top2, size2, cx2, cy2 = circle_info[name2]
-
-                radius1 = size1 / 2
-                radius2 = size2 / 2
-
-                # Calculate distance between centers
-                dx = cx2 - cx1
-                dy = cy2 - cy1
-                distance = math.sqrt(dx**2 + dy**2)
-
-                # Check for overlap (include spacing between circumferences)
-                min_distance = radius1 + radius2 + spacing
-                if distance < min_distance and distance > 0:
-                    overlap_found = True
-
-                    # Calculate overlap amount
-                    overlap = min_distance - distance
-
-                    # Unit vector from circle1 to circle2
-                    unit_dx = dx / distance
-                    unit_dy = dy / distance
-
-                    # Move each circle half the overlap distance apart
-                    move_amount = (overlap / 2) * 1.1  # Add 10% padding
-
-                    # Update positions for circle1 (move away from circle2)
-                    new_cx1 = cx1 - unit_dx * move_amount
-                    new_cy1 = cy1 - unit_dy * move_amount
-                    new_left1 = new_cx1 - radius1
-                    new_top1 = new_cy1 - radius1
-
-                    # Update positions for circle2 (move away from circle1)
-                    new_cx2 = cx2 + unit_dx * move_amount
-                    new_cy2 = cy2 + unit_dy * move_amount
-                    new_left2 = new_cx2 - radius2
-                    new_top2 = new_cy2 - radius2
-
-                    # Update circle_info
-                    circle_info[name1] = (new_left1, new_top1, size1, new_cx1, new_cy1)
-                    circle_info[name2] = (new_left2, new_top2, size2, new_cx2, new_cy2)
-
-                    # Find and update the shapes
-                    for shape in slide.shapes:
-                        if hasattr(shape, 'text_frame') and shape.text_frame.text == name1:
-                            shape.left = int(new_left1)
-                            shape.top = int(new_top1)
-                        elif hasattr(shape, 'text_frame') and shape.text_frame.text == name2:
-                            shape.left = int(new_left2)
-                            shape.top = int(new_top2)
-
-        # If no overlaps found, we're done
-        if not overlap_found:
-            break
 
 
 def center_l1_nodes(slide) -> None:
@@ -605,3 +634,96 @@ def write_surround_circles(slide, source: str, dest: list) -> None:
                 shape.top = int(new_top)
                 break
 
+
+
+
+
+
+
+def resolve_circle_overlaps(slide, spacing: int = 20) -> None:
+    """Check for overlapping circles on the slide and move them apart.
+
+    This function examines all circles stored in slide.circle_info, detects
+    overlaps based on distance between centers, and adjusts positions to
+    eliminate overlaps with minimum spacing between outer circumferences.
+
+    Args:
+        slide: The slide object with circle_info attribute.
+        spacing: Minimum pixel spacing between outer circumferences (default 20).
+    """
+    if not hasattr(slide, 'circle_info') or not isinstance(slide.circle_info, dict):
+        print("Error: No circle information found on slide.")
+        return
+
+    circle_info = slide.circle_info
+    if len(circle_info) < 2:
+        return  # No overlaps possible with 0 or 1 circle
+
+    # Build list of circle names
+    circle_names = list(circle_info.keys())
+
+    # Iterate multiple times to resolve cascading overlaps
+    max_iterations = 10
+    for iteration in range(max_iterations):
+        overlap_found = False
+
+        # Check all pairs
+        for i in range(len(circle_names)):
+            for j in range(i + 1, len(circle_names)):
+                name1 = circle_names[i]
+                name2 = circle_names[j]
+
+                left1, top1, size1, cx1, cy1 = circle_info[name1]
+                left2, top2, size2, cx2, cy2 = circle_info[name2]
+
+                radius1 = size1 / 2
+                radius2 = size2 / 2
+
+                # Calculate distance between centers
+                dx = cx2 - cx1
+                dy = cy2 - cy1
+                distance = math.sqrt(dx**2 + dy**2)
+
+                # Check for overlap (include spacing between circumferences)
+                min_distance = radius1 + radius2 + spacing
+                if distance < min_distance and distance > 0:
+                    overlap_found = True
+
+                    # Calculate overlap amount
+                    overlap = min_distance - distance
+
+                    # Unit vector from circle1 to circle2
+                    unit_dx = dx / distance
+                    unit_dy = dy / distance
+
+                    # Move each circle half the overlap distance apart
+                    move_amount = (overlap / 2) * 1.1  # Add 10% padding
+
+                    # Update positions for circle1 (move away from circle2)
+                    new_cx1 = cx1 - unit_dx * move_amount
+                    new_cy1 = cy1 - unit_dy * move_amount
+                    new_left1 = new_cx1 - radius1
+                    new_top1 = new_cy1 - radius1
+
+                    # Update positions for circle2 (move away from circle1)
+                    new_cx2 = cx2 + unit_dx * move_amount
+                    new_cy2 = cy2 + unit_dy * move_amount
+                    new_left2 = new_cx2 - radius2
+                    new_top2 = new_cy2 - radius2
+
+                    # Update circle_info
+                    circle_info[name1] = (new_left1, new_top1, size1, new_cx1, new_cy1)
+                    circle_info[name2] = (new_left2, new_top2, size2, new_cx2, new_cy2)
+
+                    # Find and update the shapes
+                    for shape in slide.shapes:
+                        if hasattr(shape, 'text_frame') and shape.text_frame.text == name1:
+                            shape.left = int(new_left1)
+                            shape.top = int(new_top1)
+                        elif hasattr(shape, 'text_frame') and shape.text_frame.text == name2:
+                            shape.left = int(new_left2)
+                            shape.top = int(new_top2)
+
+        # If no overlaps found, we're done
+        if not overlap_found:
+            break
