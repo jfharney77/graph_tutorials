@@ -1,0 +1,3 @@
+@echo off
+echo Starting Echo Service on port 6001...
+python src\api_test\echo_server.py 6001
