@@ -113,6 +113,13 @@ def personal_main2(
     write_surround_circles(slide, "Personalization", ["A1","A2","A3","A4","A5"])
     write_surround_circles(slide, "Knowledge", ["A6","A7","A8","A9","A10"])
 
+
+    harvey_ball_dict = attach_harvey_balls(xlsx_input_file_path)
+    generate_harvey_balls(
+        slide,
+        harvey_ball_dict,
+    )
+
     prs.save(pptx_output_file_path)
     print (f"saved {pptx_output_file_path}")
 
@@ -124,6 +131,7 @@ def main() -> None:
     pptx_output_file_path = "C:\\Users\\jfhar\\OneDrive\\Desktop\\github\\graph_tutorials\\agentic_plan.pptx"
     xlsx_input_file_path: str = "C:\\Users\\jfhar\\OneDrive\\Desktop\\github\\graph_tutorials\\hierarchy.xlsx"
     
+    full_control_open_pptx(pptx_output_file_path)
     personal_main2(
         pptx_output_file_path,
         xlsx_input_file_path,
@@ -134,7 +142,7 @@ def main() -> None:
 
     # do something here to create a new slide deck
 
-    #full_control_open_pptx(pptx_output_file_path)
+    full_control_open_pptx(pptx_output_file_path)
 
 if __name__ == "__main__":
     main()

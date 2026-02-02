@@ -3,6 +3,7 @@ from pptx.enum.shapes import MSO_SHAPE
 from pptx.dml.color import RGBColor
 import math
 
+from agentic_vis.config import DEFAULT_SLIDE_HEIGHT_INCHES, DEFAULT_SLIDE_WIDTH_INCHES, INCHES_FROM_SOURCE_CENTER_TO_TARGET_CENTER, MARGIN_X, MARGIN_Y
 from src.agentic_vis.excel_utils import TOOL_SIZE, L1_SIZE, AGENT_SIZE
 
 
@@ -81,6 +82,9 @@ def create_drawing_slide(prs, items: list[str] | None = None, sizes: list[float]
 
     # Don't draw anything if items is None or empty list
     if not items or len(items) == 0:
+        return slide
+    
+    if sizes is None:
         return slide
 
     # If a sizes list is provided but empty, don't draw anything per spec
@@ -203,7 +207,7 @@ def add_circle_at_coords(slide, x: float, y: float) -> None:
 
 
 def draw_circles_center(slide, circle_num: int) -> None:
-    """Draw `circle_num` circles of size 0.5 in a balanced layout centered on slide.
+    """Draw `circle_num` circles of size TOOL_SIZE (0.5) in a balanced layout centered on slide.
 
     Args:
         slide: The slide object to draw on.
@@ -212,7 +216,7 @@ def draw_circles_center(slide, circle_num: int) -> None:
     if circle_num <= 0:
         return
 
-    circle_size = Inches(0.5)
+    circle_size = Inches(TOOL_SIZE)
 
     # Determine slide dimensions
     prs = None
@@ -223,15 +227,15 @@ def draw_circles_center(slide, circle_num: int) -> None:
 
     if prs is None:
         # fallback defaults (10in x 7.5in in EMUs)
-        slide_width = Inches(10)
-        slide_height = Inches(7.5)
+        slide_width = Inches(DEFAULT_SLIDE_WIDTH_INCHES)
+        slide_height = Inches(DEFAULT_SLIDE_HEIGHT_INCHES)
     else:
         slide_width = prs.slide_width
         slide_height = prs.slide_height
 
     # margins
-    margin_x = Inches(0.75)
-    margin_y = Inches(0.75)
+    margin_x = Inches(MARGIN_X)
+    margin_y = Inches(MARGIN_Y)
 
     avail_w = slide_width - 2 * margin_x
     avail_h = slide_height - 2 * margin_y
@@ -377,9 +381,9 @@ def resolve_circle_overlaps(slide, spacing: int = 20) -> None:
 
 
 def center_l1_nodes(slide) -> None:
-    """Find all circles of size 1.5 inches and arrange them in a row at slide center.
+    """Find all circles of size L1_SIZE (1.5) inches and arrange them in a row at slide center.
 
-    This function identifies circles with size 1.5 inches in circle_info and
+    This function identifies circles with size L1_SIZE (1.5) inches in circle_info and
     repositions them horizontally centered on the slide.
 
     Args:
@@ -391,7 +395,7 @@ def center_l1_nodes(slide) -> None:
 
     circle_info = slide.circle_info
 
-    # Find all circles with size 1.5 inches
+    # Find all circles with size L1_SIZE (1.5) inches
     target_size = Inches(L1_SIZE)
     l1_circles = []
     for name, (left, top, size, cx, cy) in circle_info.items():
@@ -410,8 +414,8 @@ def center_l1_nodes(slide) -> None:
 
     if prs is None:
         # Fallback defaults (10in x 7.5in)
-        slide_width = Inches(10)
-        slide_height = Inches(7.5)
+        slide_width = Inches(DEFAULT_SLIDE_WIDTH_INCHES)
+        slide_height = Inches(DEFAULT_SLIDE_HEIGHT_INCHES)
     else:
         slide_width = prs.slide_width
         slide_height = prs.slide_height
@@ -452,9 +456,9 @@ def center_l1_nodes(slide) -> None:
 
 
 def center_tool_nodes(slide) -> None:
-    """Find all circles of size 0.5 inches and arrange them in a row at top of slide.
+    """Find all circles of size TOOL_SIZE (0.5) inches and arrange them in a row at top of slide.
 
-    This function identifies circles with size 0.5 inches in circle_info and
+    This function identifies circles with size TOOL_SIZE (0.5) inches in circle_info and
     repositions them horizontally centered in the top portion of the slide
     with equal spacing at boundaries.
 
@@ -467,7 +471,7 @@ def center_tool_nodes(slide) -> None:
 
     circle_info = slide.circle_info
 
-    # Find all circles with size 0.5 inches
+    # Find all circles with size TOOL_SIZE (0.5) inches
     target_size = Inches(TOOL_SIZE)
     tool_circles = []
     for name, (left, top, size, cx, cy) in circle_info.items():
@@ -486,8 +490,8 @@ def center_tool_nodes(slide) -> None:
 
     if prs is None:
         # Fallback defaults (10in x 7.5in)
-        slide_width = Inches(10)
-        slide_height = Inches(7.5)
+        slide_width = Inches(DEFAULT_SLIDE_WIDTH_INCHES)
+        slide_height = Inches(DEFAULT_SLIDE_HEIGHT_INCHES)
     else:
         slide_width = prs.slide_width
         slide_height = prs.slide_height
@@ -553,7 +557,7 @@ def write_surround_circles(slide, source: str, dest: list) -> None:
 
     print ('cx_src ' + str(cx_src) + ' cy_src ' + str(cy_src))
 
-    radius_distance = Inches(1.5)  # 1.5 inches from source center
+    radius_distance = Inches(INCHES_FROM_SOURCE_CENTER_TO_TARGET_CENTER)  # 1.5 inches from source center
 
     # Deduplicate dest list while preserving order
     seen = set()
