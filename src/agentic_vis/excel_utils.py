@@ -1,13 +1,9 @@
 """Utility functions for parsing Excel files."""
 
-# Size constants for component types
-L1_SIZE = 1.5
-AGENT_SIZE = 0.7
-TOOL_SIZE = 0.3
-
+from src.agentic_vis.config import L1_2_AGENTS_TAB_NAME, L1_SIZE, AGENT_SIZE, TOOL_SIZE
 
 def parse_excel_l12a(file_path: str) -> list[tuple]:
-    """Parse the Excel file and return list of (L1, Agents) pairs from sheet 'L12A'.
+    """Parse the Excel file and return list of (L1, Agents) pairs from sheet L1_2_AGENTS_TAB_NAME 'L12A'.
 
     This function locates the header columns by searching for header cells with
     text 'L1' and 'Agents' (preferably bold). It then iterates rows below the
@@ -21,7 +17,7 @@ def parse_excel_l12a(file_path: str) -> list[tuple]:
 
     Raises:
         ImportError: if `openpyxl` is not installed.
-        ValueError: if the workbook does not contain a sheet named 'L12A' or the
+        ValueError: if the workbook does not contain a sheet named L1_2_AGENTS_TAB_NAME 'L12A' or the
                     required headers cannot be located.
     """
     try:
@@ -32,10 +28,10 @@ def parse_excel_l12a(file_path: str) -> list[tuple]:
     # Do not use read_only mode because we need access to cell.font.bold
     wb = load_workbook(filename=file_path, data_only=True)
     try:
-        if 'L12A' not in wb.sheetnames:
-            raise ValueError("Sheet 'L12A' not found in workbook")
+        if L1_2_AGENTS_TAB_NAME not in wb.sheetnames:
+            raise ValueError(f"Sheet {L1_2_AGENTS_TAB_NAME} not found in workbook")
 
-        ws = wb['L12A']
+        ws = wb[L1_2_AGENTS_TAB_NAME]
 
         col_l1 = None
         col_agents = None
@@ -74,7 +70,7 @@ def parse_excel_l12a(file_path: str) -> list[tuple]:
                     break
 
         if col_l1 is None or col_agents is None:
-            raise ValueError("Could not locate header columns 'L1' and 'Agents' in sheet 'L12A'")
+            raise ValueError(f"Could not locate header columns 'L1' and 'Agents' in sheet '{L1_2_AGENTS_TAB_NAME}'")
 
         pairs: list[tuple] = []
 
