@@ -77,23 +77,64 @@ def connect_circles_batch(slide, pairs: list[tuple]) -> None:
 
 
 
+def personal_main2(
+        pptx_output_file_path: str = "C:\\Users\\jfhar\\OneDrive\\Desktop\\github\\graph_tutorials\\agentic_plan.pptx",
+        xlsx_input_file_path: str = "C:\\Users\\jfhar\\OneDrive\\Desktop\\github\\graph_tutorials\\hierarchy.xlsx"
+    ) -> None:
+    l12a_pairs = parse_excel_l12a(xlsx_input_file_path)
+    print ('l12a_pairs:')
+    print (l12a_pairs)
+    a2t_pairs = parse_excel_a2t(xlsx_input_file_path)
+    print ('a2t_pairs:')
+    print (a2t_pairs)
+    components_response = parse_excel_components(xlsx_input_file_path)
+    
+    print ('components_response:')
+    print (components_response)
+    items = components_response[0]
+    sizes = components_response[1]
+    print (items)
+    print (sizes)
+    
+    prs = Presentation()
+    slide = create_drawing_slide(prs, items, sizes)
+    
 
+    
+    items = components_response[0]
+    sizes = components_response[1]
+    print (items)
+    print (sizes)
+    center_l1_nodes(slide)
+    center_tool_nodes(slide)
 
+    resolve_circle_overlaps(slide)
+
+    write_surround_circles(slide, "Personalization", ["A1","A2","A3","A4","A5"])
+    write_surround_circles(slide, "Knowledge", ["A6","A7","A8","A9","A10"])
+
+    prs.save(pptx_output_file_path)
+    print (f"saved {pptx_output_file_path}")
 
 
 def main() -> None:
     """Entry point for agentic_vis."""
     
-    #personal_main()
     
-    #close_ppt_safe("C:\\Users\\jfhar\\OneDrive\\Desktop\\github\\graph_tutorials\\agentic_plan.pptx")
+    pptx_output_file_path = "C:\\Users\\jfhar\\OneDrive\\Desktop\\github\\graph_tutorials\\agentic_plan.pptx"
+    xlsx_input_file_path: str = "C:\\Users\\jfhar\\OneDrive\\Desktop\\github\\graph_tutorials\\hierarchy.xlsx"
     
-    #for i in range(3):
-    #    print (f"Opening in {3 - i} seconds...")
-    #    import time
-    #     time.sleep(1)
+    personal_main2(
+        pptx_output_file_path,
+        xlsx_input_file_path,
+    )
+    
 
-    full_control_open_pptx("C:\\Users\\jfhar\\OneDrive\\Desktop\\github\\graph_tutorials\\agentic_plan.pptx")
+    #full_control_open_pptx(pptx_output_file_path, False)
+
+    # do something here to create a new slide deck
+
+    #full_control_open_pptx(pptx_output_file_path)
 
 if __name__ == "__main__":
     main()
