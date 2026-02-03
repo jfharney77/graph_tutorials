@@ -1,8 +1,9 @@
 import requests
 
+PORT = "6002"
 
 def call_echo_endpoint(echo_text: str):
-    url = "http://localhost:6001/"
+    url = f"http://localhost:{PORT}/"
     payload = {"echostring": echo_text}
     
     response = requests.post(url, json=payload)
