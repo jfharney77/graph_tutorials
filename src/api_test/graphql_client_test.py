@@ -3,7 +3,7 @@ import json
 
 
 def query_persona_model(s_param=None):
-    url = "http://localhost:8000/graphql"
+    url = "http://localhost:6003/graphql"
     
     # GraphQL query
     query = """
