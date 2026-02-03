@@ -1,4 +1,5 @@
 @echo off
 call "%~dp0config.bat"
-echo Starting Echo Services on ports 6001 and 6002 in separate tabs...
-wt new-tab powershell -Command "python %ECHO_SERVER_PATH% 6001" ; new-tab powershell -Command "python %ECHO_SERVER2_PATH% 6002"
+echo Starting Echo Services on ports %ECHO_PORT1% and %ECHO_PORT2% in separate tabs...
+wt new-tab powershell -Command "python %ECHO_SERVER_PATH% %ECHO_PORT1%" ; ^
+   new-tab powershell -Command "python %ECHO_SERVER2_PATH% %ECHO_PORT2%"
