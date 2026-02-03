@@ -43,4 +43,10 @@ app.mount("/graphql", GraphQL(schema, debug=True))
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="GraphQL Persona Service")
+    parser.add_argument("service_port", type=int, help="Port for the service to run on")
+    args = parser.parse_args()
+    
+    uvicorn.run(app, host="0.0.0.0", port=args.service_port)
