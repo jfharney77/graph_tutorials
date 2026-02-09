@@ -1,5 +1,5 @@
 @echo off
-call "%~dp0..\config.bat"
+call "%~dp0\..\..\config.bat"
 set "A_DIR=%DEFAULT_PROJ_ROOT%\..\%A_NAME%"
 set "PS1_FILE=%TEMP%\install_a_helper_init.ps1"
 
