@@ -33,6 +33,7 @@ query = QueryType()
 
 @query.field("w_info")
 def resolve_w_info(obj, info, **kwargs):
+    print (kwargs)
     return {
         "w_m_o": 0,
         "i_d": ""

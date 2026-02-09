@@ -3,7 +3,7 @@ import requests
 
 
 def query_w_info(variables=None):
-    url = "http://localhost:8000/graphql"
+    url = "http://localhost:6001/graphql"
 
     query = """
     query (
